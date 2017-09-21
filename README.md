@@ -1,2 +1,4 @@
 # zero-shot-learning
-Course Project for CS772(Probabilistic Machine Learning), Fall 2017, IIT Kanpur, by Professor Piyush Rai
+Zero shot learning is the problem of classification when the test data contains data from classes that have not been seen during training time. This project extends the work of [Verma and Rai](https://arxiv.org/pdf/1707.08040.pdf), a simple generative framework, which is based on estimating *class-attributed-gated* class condition distributions.
+
+-[Abhibhav Garg](https://github.com/abhibhav14), [Prannay Khosla](https://github.com/prannayk), [Soumye Singhal](https://github.com/soumye)
