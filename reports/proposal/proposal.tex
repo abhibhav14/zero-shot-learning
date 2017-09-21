@@ -1,0 +1,52 @@
+\documentclass[9pt]{article}
+\usepackage[a4paper,total={6in,9in}]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=alphabetic,sorting=ynt]{biblatex}
+\addbibresource{mybib.bib}
+\usepackage{algorithm}
+
+\title{CS772 Project Proposal \\ Zero-Shot Learning using Simple Exponential Distributions}
+\author{Prannay Khosla \\ 150511 \and Soumye Singhal \\ 150728 \and Abhibhav Garg \\ 150010}
+\date{$10^{th}$ September 2017}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+% classification %
+Zero-shot Learning (ZSL) is the problem of learning to predict classes in a classification problem, that were unseen during training time. The paradigm is quite clearly one that is required for many models in the real world, since the assumption that exemplars of every class will be available during test time, and that the model will see nothing novel during its execution is a very unrealistic one, especially in the large scale and diverse applications that machine learning sees today. The models in general have nothing more than a description of these unseen classes that they will be required to identify.
+
+\section*{Related Work}
+There has been huge amount of work on  learning. Image recognition and speech recognition use feature extraction based methods to do zero-shot learning by generalizing from previously seen features. For example, lampert et al \cite{lampert2014attribute} use attribute-based classification wherein objects are identified based on a high-level description
+that is phrased in terms of semantic attributes, such as the object’s color or shape. A detailed analysis of the status-quo of the area is done by Xian et al \cite{2017arXiv170700600X}. They also define a new benchmark by unifying both the evaluation protocols and data splits. There has been a lot of other work that uses distribution based methods for zero-shot learning.
+
+% add standard ZSL
+
+% add distribution based ZSL
+There has been work by Kumar et al \cite{KumarVerma2017} and other work by Jain et al \cite{Jain} that uses distribution based learning to do zero-shot learning. These methods are scalable to real life datasets, with very limited amount of computation. 
+
+\section*{Proposed Contributions}
+The problem that we would like to work on is the extension of the model proposed by Verma and Rai ~\cite{KumarVerma2017} to get better results for limited data settings, and also potentially get better results in the generalized zero-shot learning setting,  by overcoming the seen class bias. 
+\par
+We propose to do this by exploring the following 2 approaches :
+\begin{itemize}
+\item {The first modification we want to try is full distribution estimates of the parameters of the generative models for each class, as opposed to just a point MLE estimate. Learning the full distribution and doing a complete Bayesian inference from that will take into account the uncertainty and high variance due to limited data, resulting in better estimates for the parameters.}
+\item {
+    We want to decouple the parameters of the generative models, into two parts, one which is class dependent and one that is class independent. We would aim to learn these separately, in an attempt to reduce the bias towards seen classes in comparison to the unseen ones. 
+}
+\item {We also want to use a mixture model in the generative setting. We will train in an online manner using expectation maximization to get a better estimate of the latent variables. Instead of deciding the class the data comes from, we would like to estimate a distribution over the model it could come from. Therefore we can train for regression using better estimates of the latent variables. }
+\end{itemize}
+We want to test these models on image classification, document classification and content classification datasets. 
+\section*{Timeline}
+We present a timeline for our work as follows :
+\begin{itemize}
+    \item {\texttt{Midsem evaluation} : Recreate original paper \cite{KumarVerma2017} and propose modifications to increase accuracy by doing a grid search over possible hyper parameter possibilities. }
+    \item {\texttt{Post mid sem break} : Try our proposed metholodogies on image classification datasets and study how well they work.}
+    \item {\texttt{End Sem evaluation} : Present our final results and insights along with generative results.}
+\end{itemize}
+\printbibliography
+\end{document}
+
