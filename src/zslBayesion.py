@@ -27,7 +27,7 @@ def createModel(data=None,
                 numUnseenClasses=10,
                 featureDimension=4096,
                 classFeatureDimension=85,
-                meanRegularizer=0,
+                meanRegularizer=0,`
                 varRegularizer=0,
                 modelPath="./zslPoint"):
     """
@@ -46,28 +46,12 @@ def createModel(data=None,
         None
     """
 
-    # TODO load data based on the format
-    # For now, assume that the matrix D has the data
-    # D[i][j] is the feature vector of the jth data point
-    # of the ith class
-
-    # In this work, Verma and Rai took simple empirical means and variances
-    # and used those as parameters for the generative model. This is
-    # precisely what we want to try and improve first.
-    # These vectors have shape dimension x numClasses
-
     D = np.load("../../awa/features.npy")
     D = D[10:]
     A = np.load("../../awa/classes.npy")
     A = np.transpose(A[10:])
     empirical_means = np.transpose(np.mean(D, axis=1))
     log_empirical_vars = np.log(np.transpose(np.var(D, axis=1)))
-
-    # TODO load the class features
-    # A will be an array of shape numClassFeatures x numSeenClasses
-
-    # Calculate mappings from class attributes
-    # to the generative model params
 
     W_mean = np.matmul(A, np.transpose(A))
     W_mean += meanRegularizer * np.eye(classFeatureDimension)
@@ -81,12 +65,11 @@ def createModel(data=None,
     W_var = np.matmul(np.transpose(A), W_var)
     W_var = np.matmul(log_empirical_vars, W_var)
 
-    # TODO matrix A now contains all class features
     A = np.transpose(np.load("../../awa/classes.npy"))
     means = np.matmul(W_mean, A)
     vars = np.exp(np.matmul(W_var, A))
 
-    np.save("model", np.stack((means, vars)))
+    np.save("model_bayesian", np.stack((means, vars)))
 
     return
 createModel()
