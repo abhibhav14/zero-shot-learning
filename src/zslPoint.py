@@ -21,12 +21,12 @@ Authors: Abhibhav, Prannay, Soumye
 
 import numpy as np
 
-def createModel(data,
-                classFeatures,
-                numSeenClasses,
-                numUnseenClasses,
-                featureDimension,
-                classFeatureDimension,
+def createModel(data=None,
+                classFeatures=None,
+                numSeenClasses=40,
+                numUnseenClasses=10,
+                featureDimension=4096,
+                classFeatureDimension=85,
                 meanRegularizer=0,
                 varRegularizer=0,
                 modelPath="./zslPoint"):
@@ -56,6 +56,10 @@ def createModel(data,
     # precisely what we want to try and improve first.
     # These vectors have shape dimension x numClasses
 
+    D = np.load("../../awa/features.npy")
+    D = D[10:]
+    A = np.load("../../awa/classes.npy")
+    A = np.transpose(A[10:])
     empirical_means = np.transpose(np.mean(D, axis=1))
     log_empirical_vars = np.log(np.transpose(np.var(D, axis=1)))
 
@@ -78,9 +82,11 @@ def createModel(data,
     W_var = np.matmul(log_empirical_vars, W_var)
 
     # TODO matrix A now contains all class features
+    A = np.transpose(np.load("../../awa/classes.npy"))
     means = np.matmul(W_mean, A)
     vars = np.exp(np.matmul(W_var, A))
 
-    np.save(model, np.stack((means, vars)))
+    np.save("model", np.stack((means, vars)))
 
     return
+createModel()
