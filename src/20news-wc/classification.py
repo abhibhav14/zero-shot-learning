@@ -27,13 +27,14 @@ for fil in train_file_list[:1000]:
 	print("Done with {}".format(fil), end="\r")
 print()
 class_means = np.zeros([args.num_class, args.dimension])
-class_cov = np.zeros([args.num_class, args.dimension])
+class_kappa = np.zeros([args.num_class, args.dimension])
 
 for i in range(args.num_class):
 	t = np.array(class_list["class_%d"%(i)], copy=True)
 	print()
 	print(t.shape)
-	class_means[i] = np.mean(t,axis=0)
+	class_means[i] = np.sum(t,axis=0)
+	class_means[i] = class_means[i] / np.sqrt(np.sum(np.square(class_means[i])))
 	map(lambda x : x - class_means[i], t)
 	class_cov[i] = np.var(t,axis=0)
 	print("Done with {}".format(i), end="\r")
