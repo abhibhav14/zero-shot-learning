@@ -22,6 +22,9 @@ Authors: Abhibhav, Prannay, Soumye
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
+from sklearn.linear_model import Ridge
+
+np.set_printoptions(threshold=np.nan)
 
 def createModel(data=None,
                 classFeatures=None,
@@ -52,6 +55,7 @@ def createModel(data=None,
     seenclassData = list()
     seenclassfeatures = list()
     unseenclassfeatures = list()
+    unseenList = list()
 
     for i in range(50):
         if counts[i] != 0:
@@ -59,56 +63,69 @@ def createModel(data=None,
             seenclassfeatures.append(A[i])
         else:
             unseenclassfeatures.append(A[i])
+            unseenList.append(i)
     D = None
 
     # Hyperparameters
     pmu = np.zeros((len(seenclassData), featureDimension))
-    plambda = np.ones((len(seenclassData), featureDimension))
-    palpha = np.ones((len(seenclassData), featureDimension))
-    pbeta = np.ones((len(seenclassData), featureDimension)) * 0.01
+    psig = np.ones((len(seenclassData), featureDimension))
+    empVar = np.zeros_like(pmu)
+    # plambda = np.ones((len(seenclassData), featureDimension))
+    # palpha = np.ones((len(seenclassData), featureDimension)) * 0.001
+    # pbeta = np.ones((len(seenclassData), featureDimension)) * 0.001
 
     # All of this stuff should be technically done via vector calcs
     # but doing individually is easier
 
     for i in range(len(seenclassData)):
         empMean = np.mean(seenclassData[i], axis=0)
-        empVar = np.var(seenclassData[i], axis=0)
-        palpha[i] += (counts[i] / 2)
-        pbeta[i] += 0.5 * (counts[i] * empVar + ((plambda[i] * counts[i] * (empMean - pmu[i]) * (empMean - pmu[i])) / (plambda[i] + counts[i])))
-        pmu[i] = (plambda[i] * pmu[i] + counts[i] * empMean) / (plambda[i] + counts[i])
-        plambda[i] += counts[i]
+        empVar[i] = np.var(seenclassData[i], axis=0) + 1e-6
+        print(min(empVar[i]))
+        pmu[i] = (empVar[i] * pmu[i] + counts[i] * empMean * psig[i]) / (counts[i] * psig[i] + empVar[i])
+        psig[i] = 1 / (counts[i]/empVar[i] + 1/psig[i])
 
 
     # We pass the lambda, alpha and beta through a log function for positivity
-    palpha = np.log(palpha)
-    pbeta = np.log(pbeta)
-    plambda = np.log(plambda)
+    psig = np.log(psig)
+    empVar = np.log(empVar)
 
     # Calulate the lin reg outputs
-    wmu = sp.lstsq(seenclassfeatures, pmu)[0]
-    wlambda = sp.lstsq(seenclassfeatures, plambda)[0]
-    walpha = sp.lstsq(seenclassfeatures, palpha)[0]
-    wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
+    # wmu = sp.lstsq(seenclassfeatures, pmu)[0]
+    # wlambda = sp.lstsq(seenclassfeatures, plambda)[0]
+    # walpha = sp.lstsq(seenclassfeatures, palpha)[0]
+    # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
+
+    modelMu = Ridge(alpha = 325000)
+    modelSig = Ridge(alpha = 32500)
+    modelEmpV = Ridge(alpha = 32500)
+
+    modelMu.fit(seenclassfeatures, pmu)
+    modelSig.fit(seenclassfeatures, psig)
+    modelEmpV.fit(seenclassfeatures, empVar)
+
 
     # Calculate the params for all classes
-    muOut = np.matmul(A, wmu)
-    lambdaOut = np.exp(np.matmul(A, wlambda))
-    alphaOut = np.exp(np.matmul(A, walpha))
-    betaOut = np.exp(np.matmul(A, wbeta))
-    print(betaOut.shape)
+    muOut = modelMu.predict(A)
+    sigOut = np.exp(modelSig.predict(A))
+    empSigOut = np.exp(modelEmpV.predict(A))
+    print("Reached")
 
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
     countsTest = countsTest.astype(int)
-    print("here")
-    print(inference(muOut, lambdaOut, alphaOut, betaOut, testD[0][1]))
+    print("infering")
+    for j in range(countsTest[5]):
+        for i in unseenList:
+            print(i, inference(unseenList, muOut, sigOut, empSigOut, testD[i][j]), j, " out of ", countsTest[i], " samples from this class.")
+        print()
 
     return
 
-def inference(muOut, lambdaOut, alphaOut, betaOut, point):
-    pos = np.zeros(50)
-    for i in range(50):
-        pos[i] = np.sum(stats.t.logpdf(point, alphaOut[i] * 2, muOut[i], (betaOut[i] * (lambdaOut[i] + 1)) / (alphaOut[i] * lambdaOut[i])))
+def inference(unseenList, muOut, sigOut, empSigOut, point):
+    pos = np.zeros(50) - 10000000
+    for i in unseenList:
+        pos[i] = np.sum([stats.multivariate_normal.logpdf(point[j], muOut[i][j], sigOut[i][j] + empSigOut[i][j]) for j in range(4096)])
+    print(pos)
     return np.argmax(pos)
 
 createModel()
