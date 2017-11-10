@@ -54,6 +54,7 @@ def createModel(data=None,
 
     seenclassData = list()
     seenclassfeatures = list()
+    seenClassList = list()
     unseenclassfeatures = list()
     unseenList = list()
 
@@ -61,6 +62,7 @@ def createModel(data=None,
         if counts[i] != 0:
             seenclassData.append(D[i][:counts[i]])
             seenclassfeatures.append(A[i])
+            seenClassList.append(i)
         else:
             unseenclassfeatures.append(A[i])
             unseenList.append(i)
@@ -82,12 +84,13 @@ def createModel(data=None,
     # but doing individually is easier
 
     for i in range(len(seenclassData)):
+        count = counts[seenClassList[i]]
         empMean[i] = np.mean(seenclassData[i], axis=0)
         empVar[i] = np.var(seenclassData[i], axis=0) + 1e-6
         # pmu[i] = (empVar[i] * pmu[i] + counts[i] * empMean * psig[i]) / (counts[i] * psig[i] + empVar[i])
         # psig[i] = 1 / (counts[i]/empVar[i] + 1/psig[i])
-        palpha[i] = palpha[i] + counts[i] / 2
-        pbeta[i] = pbeta[i] + 0.5 * empVar[i] * counts[i]
+        palpha[i] = palpha[i] + count / 2
+        pbeta[i] = pbeta[i] + 0.5 * empVar[i] * count
         print(min(pbeta[i]))
 
 
@@ -115,23 +118,22 @@ def createModel(data=None,
     palOut = np.exp(modelpal.predict(A))
     pbeOut = np.exp(modelpbe.predict(A))
     print("Reached")
-    return
 
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
     countsTest = countsTest.astype(int)
-    print("infering")
+    print("Infering")
     for j in range(countsTest[5]):
         for i in unseenList:
-            print(i, inference(unseenList, muOut, sigOut, empSigOut, testD[i][j]), j, " out of ", countsTest[i], " samples from this class.")
+            print(i, inference(unseenList, muOut, palOut, pbeOut, testD[i][j]), j, " out of ", countsTest[i], " samples from this class.")
         print()
 
     return
 
-def inference(unseenList, muOut, sigOut, empSigOut, point):
+def inference(unseenList, muOut, palOut, pbeOut, point):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
-        pos[i] = np.sum([stats.multivariate_normal.logpdf(point[j], muOut[i][j], sigOut[i][j] + empSigOut[i][j]) for j in range(4096)])
+        pos[i] = np.sum([stats.t.logpdf(point[j], 2 * palOut[i][j], muOut[i][j], pbeOut[i][j] / palOut[i][j]) for j in range(4096)])
     print(pos)
     return np.argmax(pos)
 

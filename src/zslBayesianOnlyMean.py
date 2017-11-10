@@ -54,6 +54,7 @@ def createModel(data=None,
 
     seenclassData = list()
     seenclassfeatures = list()
+    seenClassList = list()
     unseenclassfeatures = list()
     unseenList = list()
 
@@ -61,6 +62,7 @@ def createModel(data=None,
         if counts[i] != 0:
             seenclassData.append(D[i][:counts[i]])
             seenclassfeatures.append(A[i])
+            seenClassList.append(i)
         else:
             unseenclassfeatures.append(A[i])
             unseenList.append(i)
@@ -78,11 +80,11 @@ def createModel(data=None,
     # but doing individually is easier
 
     for i in range(len(seenclassData)):
-        print(counts[i])
+        count = counts[seenClassList[i]]
         empMean = np.mean(seenclassData[i], axis=0)
         empVar[i] = np.var(seenclassData[i], axis=0) + 1e-6
-        pmu[i] = (empVar[i] * pmu[i] + counts[i] * empMean * psig[i]) / (counts[i] * psig[i] + empVar[i])
-        psig[i] = 1 / (counts[i]/empVar[i] + 1/psig[i])
+        pmu[i] = (empVar[i] * pmu[i] + count * empMean * psig[i]) / (count * psig[i] + empVar[i])
+        psig[i] = 1 / (count/empVar[i] + 1/psig[i])
 
     return
 
