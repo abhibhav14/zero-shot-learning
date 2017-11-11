@@ -124,7 +124,10 @@ def createModel(data=None,
     print("infering")
     for i in unseenList:
         for j in range(countsTest[i]):
-            print(i, inference(unseenList, muOut, lambdaOut, alphaOut, betaOut, testD[i][j]))
+            pred,vals = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
+            writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
+            print(writevar, end='\r')
+            with open("out_full.txt", mode="a") as f: f.write(writevar)
         print()
 
     return
@@ -133,6 +136,8 @@ def inference(unseenList, muOut, lambdaOut, alphaOut, betaOut, point, ):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
         pos[i] = np.sum(stats.t.logpdf(point, alphaOut[i] * 2, muOut[i], (betaOut[i] * (lambdaOut[i] + 1)) / (alphaOut[i] * lambdaOut[i])))
-    return np.argmax(pos)
+    ex = np.exp(pos - np.max(pos))
+    ex = ex / ex.sum()
+    return np.argsort(pos)[-5:], np.sort(ex)[-5:]
 
 createModel()

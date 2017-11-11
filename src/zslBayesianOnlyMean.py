@@ -18,7 +18,7 @@ The high level steps are as follows:
 
 Authors: Abhibhav, Prannay, Soumye
 """
-
+from __future__ import print_function
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
@@ -86,7 +86,6 @@ def createModel(data=None,
         pmu[i] = (empVar[i] * pmu[i] + count * empMean * psig[i]) / (count * psig[i] + empVar[i])
         psig[i] = 1 / (count/empVar[i] + 1/psig[i])
 
-    return
 
 
     # We pass the lambda, alpha and beta through a log function for positivity
@@ -121,17 +120,20 @@ def createModel(data=None,
     print("Inferring")
     for i in unseenList:
         for j in range(countsTest[5]):
-            pred = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
-            print(i, pred, j, " out of ", countsTest[i], " samples from this class.")
+            pred,vals = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
+            writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
+            print(writevar, end='\r')
+            with open("out_mean.txt", mode="a") as f: f.write(writevar)
         print()
 
-    return
+    
 
 def inference(unseenList, muOut, sigOut, empSigOut, point):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
         pos[i] = np.sum([stats.multivariate_normal.logpdf(point[j], muOut[i][j], sigOut[i][j] + empSigOut[i][j]) for j in range(4096)])
-    print(pos)
-    return np.argmax(pos)
+    ex = np.exp(pos - np.max(pos))
+    ex = ex / ex.sum()
+    return np.argsort(pos)[-5:], np.sort(ex)[-5:]
 
 createModel()

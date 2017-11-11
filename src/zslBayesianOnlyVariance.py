@@ -117,7 +117,6 @@ def createModel(data=None,
     muOut = modelMu.predict(A)
     palOut = np.exp(modelpal.predict(A))
     pbeOut = np.exp(modelpbe.predict(A))
-    print("Reached")
 
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
@@ -125,16 +124,19 @@ def createModel(data=None,
     print("Infering")
     for j in range(countsTest[5]):
         for i in unseenList:
-            print(i, inference(unseenList, muOut, palOut, pbeOut, testD[i][j]), j, " out of ", countsTest[i], " samples from this class.")
+            pred,vals = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
+            writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
+            print(writevar, end='\r')
+            with open("out2_var.txt", mode="a") as f: f.write(writevar)
         print()
 
-    return
 
 def inference(unseenList, muOut, palOut, pbeOut, point):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
         pos[i] = np.sum([stats.t.logpdf(point[j], 2 * palOut[i][j], muOut[i][j], pbeOut[i][j] / palOut[i][j]) for j in range(4096)])
-    print(pos)
-    return np.argmax(pos)
+    ex = np.exp(pos - np.max(pos))
+    ex = ex / ex.sum()
+    return np.argsort(pos)[-5:], np.sort(ex)[-5:]
 
 createModel()
