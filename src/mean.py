@@ -18,7 +18,7 @@ The high level steps are as follows:
 
 Authors: Abhibhav, Prannay, Soumye
 """
-
+from __future__ import print_function
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
@@ -85,6 +85,9 @@ def createModel(data=None,
 
 
     # We pass the lambda, alpha and beta through a log function for positivity
+    for num, i in enumerate(psig):
+        print(i[0:2], num in unseenList)
+    return
     psig = np.log(psig)
     empVar = np.log(empVar)
 
@@ -94,7 +97,7 @@ def createModel(data=None,
     # walpha = sp.lstsq(seenclassfeatures, palpha)[0]
     # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
 
-    modelMu = Ridge(alpha = 325000)
+    modelMu = Ridge(alpha = 32500000)
     modelSig = Ridge(alpha = 32500)
     modelEmpV = Ridge(alpha = 32500)
 
@@ -107,6 +110,9 @@ def createModel(data=None,
     muOut = modelMu.predict(A)
     sigOut = np.exp(modelSig.predict(A))
     empSigOut = np.exp(modelEmpV.predict(A))
+    for num, i in enumerate(sigOut):
+        print(i[0:2], num in unseenList)
+    return
 
     print("Model Learnt")
 
@@ -116,8 +122,10 @@ def createModel(data=None,
     print("Inferring")
     for i in unseenList:
         for j in range(countsTest[5]):
-            pred = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
-            print(i, pred, j, " out of ", countsTest[i], " samples from this class.")
+            pred,vals = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
+            writevar = "{} : {} {}\n".format(i, ','.join(map(lambda x : str(x),pred)), ','.join(map(lambda x : str(x),vals)))
+            print(writevar, end='\r')
+            with open("out2.txt", mode="a") as f: f.write(writevar)
         print()
 
     return
@@ -126,7 +134,9 @@ def inference(unseenList, muOut, sigOut, empSigOut, point):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
         pos[i] = np.sum([stats.multivariate_normal.logpdf(point[j], muOut[i][j], sigOut[i][j] + empSigOut[i][j]) for j in range(4096)])
-    print(pos)
-    return np.argmax(pos)
+    ex = np.exp(pos - np.max(pos))
+    ex = ex / ex.sum()
+    return np.argsort(ex)[-5:], np.sort(ex)[-5:]
+
 
 createModel()
