@@ -50,7 +50,7 @@ def createModel(data=None,
     A = np.load("../../Awa_zeroshot/awadata/classFeat.npy")
     counts = np.load("../../Awa_zeroshot/awadata/count_vector.npy")
     counts = counts.astype(int)
-    print("Data Loaded")
+    print(counts)
 
     seenclassData = list()
     seenclassfeatures = list()
@@ -69,9 +69,13 @@ def createModel(data=None,
     D = None
 
     # Hyperparameters
-    pmu = np.zeros((len(seenclassData), featureDimension))
-    psig = np.ones((len(seenclassData), featureDimension))
-    empVar = np.zeros_like(pmu)
+    # pmu = np.zeros((len(seenclassData), featureDimension))
+    # psig = np.ones((len(seenclassData), featureDimension))
+    empMean = np.zeros((len(seenclassData), featureDimension))
+    empVar = np.zeros_like(empMean)
+    palpha = np.ones_like(empMean) * 2
+    pbeta = np.zeros_like(empMean)
+
     # plambda = np.ones((len(seenclassData), featureDimension))
     # palpha = np.ones((len(seenclassData), featureDimension)) * 0.001
     # pbeta = np.ones((len(seenclassData), featureDimension)) * 0.001
@@ -81,17 +85,18 @@ def createModel(data=None,
 
     for i in range(len(seenclassData)):
         count = counts[seenClassList[i]]
-        empMean = np.mean(seenclassData[i], axis=0)
+        empMean[i] = np.mean(seenclassData[i], axis=0)
         empVar[i] = np.var(seenclassData[i], axis=0) + 1e-6
-        pmu[i] = (empVar[i] * pmu[i] + count * empMean * psig[i]) / (count * psig[i] + empVar[i])
-        psig[i] = 1 / (count/empVar[i] + 1/psig[i])
-
-    return
+        # pmu[i] = (empVar[i] * pmu[i] + counts[i] * empMean * psig[i]) / (counts[i] * psig[i] + empVar[i])
+        # psig[i] = 1 / (counts[i]/empVar[i] + 1/psig[i])
+        palpha[i] = palpha[i] + count / 2
+        pbeta[i] = pbeta[i] + 0.5 * empVar[i] * count
+        print(min(pbeta[i]))
 
 
     # We pass the lambda, alpha and beta through a log function for positivity
-    psig = np.log(psig)
-    empVar = np.log(empVar)
+    palpha = np.log(palpha)
+    pbeta = np.log(pbeta)
 
     # Calulate the lin reg outputs
     # wmu = sp.lstsq(seenclassfeatures, pmu)[0]
@@ -100,37 +105,35 @@ def createModel(data=None,
     # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
 
     modelMu = Ridge(alpha = 325000)
-    modelSig = Ridge(alpha = 32500)
-    modelEmpV = Ridge(alpha = 32500)
+    modelpal = Ridge(alpha = 32500)
+    modelpbe = Ridge(alpha = 32500)
 
-    modelMu.fit(seenclassfeatures, pmu)
-    modelSig.fit(seenclassfeatures, psig)
-    modelEmpV.fit(seenclassfeatures, empVar)
+    modelMu.fit(seenclassfeatures, empMean)
+    modelpal.fit(seenclassfeatures, palpha)
+    modelpbe.fit(seenclassfeatures, pbeta)
 
 
     # Calculate the params for all classes
     muOut = modelMu.predict(A)
-    sigOut = np.exp(modelSig.predict(A))
-    empSigOut = np.exp(modelEmpV.predict(A))
-
-    print("Model Learnt")
+    palOut = np.exp(modelpal.predict(A))
+    pbeOut = np.exp(modelpbe.predict(A))
+    print("Reached")
 
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
     countsTest = countsTest.astype(int)
-    print("Inferring")
-    for i in unseenList:
-        for j in range(countsTest[5]):
-            pred = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
-            print(i, pred, j, " out of ", countsTest[i], " samples from this class.")
+    print("Infering")
+    for j in range(countsTest[5]):
+        for i in unseenList:
+            print(i, inference(unseenList, muOut, palOut, pbeOut, testD[i][j]), j, " out of ", countsTest[i], " samples from this class.")
         print()
 
     return
 
-def inference(unseenList, muOut, sigOut, empSigOut, point):
+def inference(unseenList, muOut, palOut, pbeOut, point):
     pos = np.zeros(50) - 10000000
     for i in unseenList:
-        pos[i] = np.sum([stats.multivariate_normal.logpdf(point[j], muOut[i][j], sigOut[i][j] + empSigOut[i][j]) for j in range(4096)])
+        pos[i] = np.sum([stats.t.logpdf(point[j], 2 * palOut[i][j], muOut[i][j], pbeOut[i][j] / palOut[i][j]) for j in range(4096)])
     print(pos)
     return np.argmax(pos)
 

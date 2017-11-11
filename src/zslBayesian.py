@@ -22,6 +22,8 @@ Authors: Abhibhav, Prannay, Soumye
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
+from sklearn.linear_model import Ridge
+
 np.set_printoptions(threshold=np.nan)
 
 def createModel(data=None,
@@ -53,12 +55,14 @@ def createModel(data=None,
     seenclassData = list()
     seenclassfeatures = list()
     unseenclassfeatures = list()
+    seenClassList = list()
     unseenList = list()
 
     for i in range(50):
         if counts[i] != 0:
             seenclassData.append(D[i][:counts[i]])
             seenclassfeatures.append(A[i])
+            seenClassList.append(i)
         else:
             unseenclassfeatures.append(A[i])
             unseenList.append(i)
@@ -67,18 +71,19 @@ def createModel(data=None,
     # Hyperparameters
     pmu = np.zeros((len(seenclassData), featureDimension))
     plambda = np.ones((len(seenclassData), featureDimension))
-    palpha = np.ones((len(seenclassData), featureDimension)) * 0.001
-    pbeta = np.ones((len(seenclassData), featureDimension)) * 0.001
+    palpha = np.ones((len(seenclassData), featureDimension)) * 2
+    pbeta = np.ones((len(seenclassData), featureDimension)) * 0
 
     # All of this stuff should be technically done via vector calcs
     # but doing individually is easier
 
     for i in range(len(seenclassData)):
+        count = counts[seenClassList[i]]
         empMean = np.mean(seenclassData[i], axis=0)
         empVar = np.var(seenclassData[i], axis=0)
-        palpha[i] += (counts[i] / 2)
-        pbeta[i] += 0.5 * (counts[i] * empVar + ((plambda[i] * counts[i] * (empMean - pmu[i]) * (empMean - pmu[i])) / (plambda[i] + counts[i])))
-        pmu[i] = (plambda[i] * pmu[i] + counts[i] * empMean) / (plambda[i] + counts[i])
+        palpha[i] += (count / 2)
+        pbeta[i] += 0.5 * (count * empVar + ((plambda[i] * count * (empMean - pmu[i]) * (empMean - pmu[i])) / (plambda[i] + count)))
+        pmu[i] = (plambda[i] * pmu[i] + count * empMean) / (plambda[i] + count)
         # plambda[i] += counts[i]
         # print(max(pmu[i]))
         # print(min(pmu[i]))
@@ -91,16 +96,27 @@ def createModel(data=None,
     plambda = np.log(plambda)
 
     # Calulate the lin reg outputs
-    wmu = sp.lstsq(seenclassfeatures, pmu)[0]
-    wlambda = sp.lstsq(seenclassfeatures, plambda)[0]
-    walpha = sp.lstsq(seenclassfeatures, palpha)[0]
-    wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
+    # wmu = sp.lstsq(seenclassfeatures, pmu)[0]
+    # wlambda = sp.lstsq(seenclassfeatures, plambda)[0]
+    # walpha = sp.lstsq(seenclassfeatures, palpha)[0]
+    # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
+
+    modelMu = Ridge(alpha=325000)
+    modelLambda = Ridge(alpha=32500)
+    modelAlph = Ridge(alpha=32500)
+    modelBet = Ridge(alpha=32500)
+
+
+    modelMu.fit(seenclassfeatures, pmu)
+    modelLambda.fit(seenclassfeatures, plambda)
+    modelAlph.fit(seenclassfeatures, palpha)
+    modelBet.fit(seenclassfeatures, pbeta)
 
     # Calculate the params for all classes
-    muOut = np.matmul(A, wmu)
-    lambdaOut = np.exp(np.matmul(A, wlambda))
-    alphaOut = np.exp(np.matmul(A, walpha))
-    betaOut = np.exp(np.matmul(A, wbeta))
+    muOut = modelMu.predict(A)
+    lambdaOut = np.exp(modelLambda.predict(A))
+    alphaOut = np.exp(modelAlph.predict(A))
+    betaOut = np.exp(modelBet.predict(A))
 
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
@@ -109,8 +125,6 @@ def createModel(data=None,
     for i in unseenList:
         for j in range(countsTest[i]):
             print(i, inference(unseenList, muOut, lambdaOut, alphaOut, betaOut, testD[i][j]))
-        print()
-        print()
         print()
 
     return
