@@ -18,7 +18,7 @@ The high level steps are as follows:
 
 Authors: Abhibhav, Prannay, Soumye
 """
-
+from __future__ import print_function
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats

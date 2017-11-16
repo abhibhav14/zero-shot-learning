@@ -18,7 +18,7 @@ The high level steps are as follows:
 
 Authors: Abhibhav, Prannay, Soumye
 """
-
+from __future__ import print_function
 import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
@@ -104,9 +104,9 @@ def createModel(data=None,
     # walpha = sp.lstsq(seenclassfeatures, palpha)[0]
     # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
 
-    modelMu = Ridge(alpha = 325000)
-    modelpal = Ridge(alpha = 32500)
-    modelpbe = Ridge(alpha = 32500)
+    modelMu = Ridge(alpha = 3250)
+    modelpal = Ridge(alpha = 3250)
+    modelpbe = Ridge(alpha = 3250)
 
     modelMu.fit(seenclassfeatures, empMean)
     modelpal.fit(seenclassfeatures, palpha)
@@ -122,9 +122,9 @@ def createModel(data=None,
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
     countsTest = countsTest.astype(int)
     print("Infering")
-    for j in range(countsTest[5]):
-        for i in unseenList:
-            pred,vals = inference(unseenList, muOut, sigOut, empSigOut, testD[i][j])
+    for i in unseenList:
+        for j in range(countsTest[5]):
+            pred,vals = inference(unseenList, muOut, palOut, pbeOut, testD[i][j])
             writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
             print(writevar, end='\r')
             with open("out2_var.txt", mode="a") as f: f.write(writevar)
