@@ -104,8 +104,8 @@ def createModel(data=None,
       empVar[i] = np.var(seenclassData[i], axis=0) + 1e-6
     empVar = np.log(empVar)
   
-    modelMu = Ridge(alpha = 32500)
-    modelEmpV = Ridge(alpha = 32500)
+    modelMu = Ridge(alpha = 32500000)
+    modelEmpV = Ridge(alpha = 32500000)
 
     modelMu.fit(seenclassfeatures, empMu)
     modelEmpV.fit(seenclassfeatures, empVar)

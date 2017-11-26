@@ -1,0 +1,8 @@
+total 36
+drwxr-xr-x 2 prannay gpu 4096 Nov  8 00:02 .
+drwxr-xr-x 5 prannay gpu 4096 Nov  7 22:32 ..
+-rw-r--r-- 1 prannay gpu 4553 Nov  8 00:02 mean.py
+-rw-r--r-- 1 prannay gpu    0 Nov  8 00:02 out.txt
+-rw-r--r-- 1 prannay gpu 4578 Nov  7 22:35 zslBayesianOnlyMean.py
+-rw-r--r-- 1 prannay gpu 4427 Nov  7 22:32 zslBayesian.py
+-rw-r--r-- 1 prannay gpu 3186 Nov  7 22:32 zslPoint.py

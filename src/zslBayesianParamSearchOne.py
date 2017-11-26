@@ -23,10 +23,11 @@ import numpy as np
 import scipy.linalg as sp
 import scipy.stats as stats
 from sklearn.linear_model import Ridge
+import time
 
 np.set_printoptions(threshold=np.nan)
 
-def createModel(data=None,
+def createModel(regAlpha, data=None,
                 classFeatures=None,
                 featureDimension=4096,
                 classFeatureDimension=85,
@@ -50,7 +51,6 @@ def createModel(data=None,
     A = np.load("../../Awa_zeroshot/awadata/classFeat.npy")
     counts = np.load("../../Awa_zeroshot/awadata/count_vector.npy")
     counts = counts.astype(int)
-    print(counts)
 
     seenclassData = list()
     seenclassfeatures = list()
@@ -101,10 +101,10 @@ def createModel(data=None,
     # walpha = sp.lstsq(seenclassfeatures, palpha)[0]
     # wbeta = sp.lstsq(seenclassfeatures, pbeta)[0]
 
-    modelMu = Ridge(alpha=10000)
-    modelLambda = Ridge(alpha=10000)
-    modelAlph = Ridge(alpha=10000)
-    modelBet = Ridge(alpha=10000)
+    modelMu = Ridge(alpha=regAlpha)
+    modelLambda = Ridge(alpha=regAlpha)
+    modelAlph = Ridge(alpha=regAlpha)
+    modelBet = Ridge(alpha=regAlpha)
 
 
     modelMu.fit(seenclassfeatures, pmu)
@@ -121,23 +121,35 @@ def createModel(data=None,
     testD = np.load("../../Awa_zeroshot/awadata/test_feat.npy")
     countsTest = np.load("../../Awa_zeroshot/awadata/countsTest.npy")
     countsTest = countsTest.astype(int)
-    print("infering")
+    countAcc = 0
+    start_time = time.time()
     for i in unseenList:
-        for j in range(countsTest[i]):
-            pred,vals = inference(unseenList, muOut, lambdaOut, alphaOut, betaOut,  testD[i][j])
-            writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
-            print(writevar, end='\r')
-            with open("out_full_3.txt", mode="a") as f: f.write(writevar)
-        print()
-
-    return
+        for j in np.random.permutation(countsTest[i])[:200]:
+            pred,vals = inference(unseenList, muOut, lambdaOut, alphaOut, betaOut, testD[i][j])
+            if i in pred:
+    #          print("{} : {}".format(i+1, j+1))
+              countAcc += 1
+            # writevar = "{} : {} : {}\n".format(i, ' '.join(map(lambda x : str(x),pred)[::-1]), ' '.join(map(lambda x : str(x),vals)[::-1]))
+            # print(writevar, end='\r')
+            #with open("out_full.txt", mode="a") as f: f.write(writevar)
+        #print()
+    
+    return countAcc
 
 def inference(unseenList, muOut, lambdaOut, alphaOut, betaOut, point, ):
     pos = np.zeros(50) - 10000000
+    lambdaOut = np.ones_like(lambdaOut)
+    alphaOut = np.ones_like(alphaOut)
     for i in unseenList:
         pos[i] = np.sum(stats.t.logpdf(point, alphaOut[i] * 2, muOut[i], (betaOut[i] * (lambdaOut[i] + 1)) / (alphaOut[i] * lambdaOut[i])))
     ex = np.exp(pos - np.max(pos))
     ex = ex / ex.sum()
-    return np.argsort(pos)[-5:], np.sort(ex)[-5:]
+    return np.argsort(pos)[-3:], np.sort(ex)[-5:]
 
-createModel()
+alphas = [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 1000000, 3000000]
+for i in range(len(alphas)):
+    print("Starting for {} with hyper-params : {}".format(i+1,alphas[i]))
+    start_time = time.time()
+    c = createModel(alphas[i])
+    print("Ending for {} with hyper-params : {} in time: {}".format(i+1,alphas[i], time.time() - start_time))
+    print(alphas[i], c)
