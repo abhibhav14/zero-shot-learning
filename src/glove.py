@@ -19,4 +19,5 @@ def loadWordVectors(tokens, filepath=DEFAULT_FILE_PATH, dimensions=50):
             if len(data) != dimensions:
                 raise RuntimeError("wrong number of dimensions")
             wordVectors[tokens[token]] = np.asarray(data)
+            
     return wordVectors
